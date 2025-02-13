@@ -1,0 +1,197 @@
+.budget-page {
+    padding: 1rem;
+    min-height: 100vh;
+  }
+  
+  .income-section {
+    padding: 1.5rem;
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+    color: white;
+  }
+  
+  .income-input {
+    margin-bottom: 1rem;
+  }
+  
+  .income-input label {
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+  
+  .income-input input {
+    width: 100%;
+    padding: 0.8rem;
+    border-radius: 8px;
+    border: none;
+    font-size: 1.2rem;
+  }
+  
+  .pay-period-toggle {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+  }
+  
+  .pay-period-toggle button {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.1);
+    color: white;
+    cursor: pointer;
+  }
+  
+  .pay-period-toggle button.active {
+    background: white;
+    color: #2D5D4B;
+  }
+  
+  .remaining-balance {
+    text-align: center;
+    padding: 1rem;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.1);
+  }
+  
+  .ai-suggestions {
+    padding: 1rem;
+    background: rgba(255,107,107,0.1);
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+  }
+  
+  .ai-suggestions h4 {
+    margin: 0 0 0.5rem 0;
+  }
+  
+  .suggestion {
+    padding: 0.5rem;
+    background: white;
+    border-radius: 6px;
+    margin: 0.5rem 0;
+  }
+  
+  .visualization-section {
+    height: 300px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 2rem 0;
+  }
+  
+  .category-list {
+    display: grid;
+    gap: 1rem;
+  }
+  
+  .category-card {
+    padding: 1rem;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  
+  .category-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+  
+  .allocation-input {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .allocation-input input {
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    width: 100px;
+  }
+  
+  .progress-bar {
+    height: 4px;
+    background: #eee;
+    border-radius: 2px;
+    margin-top: 1rem;
+  }
+  
+  .progress-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.3s ease;
+  }
+  
+  .add-category {
+    position: fixed;
+    bottom: 1rem;
+    left: 1rem;
+    right: 1rem;
+    display: flex;
+    gap: 0.5rem;
+    background: white;
+    padding: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+  }
+  
+  .add-category input {
+    flex: 1;
+    padding: 0.8rem;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+  }
+  
+  .add-category button {
+    padding: 0.8rem 1.5rem;
+    border: none;
+    border-radius: 6px;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  @media (min-width: 768px) {
+    .budget-page {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+  
+    .category-list {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  
+    .add-category {
+      position: static;
+      box-shadow: none;
+    }
+  }
+
+  /* Drag & Drop Styles */
+.drag-handle {
+    cursor: grab;
+    padding: 0.5rem;
+    margin-right: 1rem;
+    opacity: 0.6;
+    transition: opacity 0.2s ease;
+  }
+  
+  .drag-handle:hover {
+    opacity: 1;
+  }
+  
+  .drag-handle:active {
+    cursor: grabbing;
+  }
+  
+  .category-card {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1rem;
+  }
