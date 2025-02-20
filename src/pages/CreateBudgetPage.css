@@ -12,6 +12,7 @@
   
   .income-input {
     margin-bottom: 1rem;
+    margin-right: 1.5rem;
   }
   
   .income-input label {
@@ -146,6 +147,19 @@
   }
   
   .add-category button {
+    padding: 0.8rem 1.5rem;
+    border: none;
+    border-radius: 6px;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .save-income{
+    /* move down*/
+    margin-top: 1rem;
     padding: 0.8rem 1.5rem;
     border: none;
     border-radius: 6px;

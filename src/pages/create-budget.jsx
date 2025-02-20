@@ -20,6 +20,78 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import './CreateBudgetPage.css';
 
+
+// Initialize IndexedDB
+const DB_NAME = 'FinDeepDB';
+const DB_VERSION = 1;
+const STORE_NAMES = {
+  CATEGORIES: 'categories',
+  BUDGET: 'budget'
+};
+
+const openDB = () => {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains(STORE_NAMES.CATEGORIES)) {
+        db.createObjectStore(STORE_NAMES.CATEGORIES, { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains(STORE_NAMES.BUDGET)) {
+        db.createObjectStore(STORE_NAMES.BUDGET, { keyPath: 'id' });
+      }
+    };
+
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+};
+
+// IndexedDB operations
+const addCategoryToDB = async (category) => {
+  const db = await openDB();
+  const tx = db.transaction(STORE_NAMES.CATEGORIES, 'readwrite');
+  tx.objectStore(STORE_NAMES.CATEGORIES).put(category);
+  return tx.complete;
+};
+
+const getAllCategoriesFromDB = async () => {
+  const db = await openDB();
+  return new Promise((resolve) => {
+    const tx = db.transaction(STORE_NAMES.CATEGORIES, 'readonly');
+    const request = tx.objectStore(STORE_NAMES.CATEGORIES).getAll();
+    request.onsuccess = () => resolve(request.result);
+  });
+};
+
+const updateCategoryInDB = async (category) => {
+  const db = await openDB();
+  const tx = db.transaction(STORE_NAMES.CATEGORIES, 'readwrite');
+  tx.objectStore(STORE_NAMES.CATEGORIES).put(category);
+  return tx.complete;
+};
+
+const saveBudgetToDB = async (budgetData) => {
+  const db = await openDB();
+  const tx = db.transaction(STORE_NAMES.BUDGET, 'readwrite');
+  tx.objectStore(STORE_NAMES.BUDGET).put({ 
+    id: 'current', 
+    ...budgetData 
+  });
+  return tx.complete;
+};
+
+const getBudgetFromDB = async () => {
+  const db = await openDB();
+  return new Promise((resolve) => {
+    const tx = db.transaction(STORE_NAMES.BUDGET, 'readonly');
+    const request = tx.objectStore(STORE_NAMES.BUDGET).get('current');
+    request.onsuccess = () => resolve(request.result);
+  });
+};
+
+
 // Color generator function
 const generateCategoryColors = (count) => {
   const colors = [];
@@ -58,11 +130,7 @@ const CreateBudgetPage = () => {
   const theme = useTheme();
   const [income, setIncome] = useState(0);
   const [payPeriod, setPayPeriod] = useState('monthly');
-  const [categories, setCategories] = useState([
-    { id: '1', name: 'Rent', allocated: 0, spent: 0, type: 'essential' },
-    { id: '2', name: 'Groceries', allocated: 0, spent: 0, type: 'essential' },
-    { id: '3', name: 'Savings', allocated: 0, spent: 0, type: 'savings' },
-  ]);
+  const [categories, setCategories] = useState([]);
   const [remaining, setRemaining] = useState(0);
   const [newCategory, setNewCategory] = useState('');
   const [aiSuggestions, setAiSuggestions] = useState([]);
@@ -73,6 +141,70 @@ const CreateBudgetPage = () => {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
+
+    // Load initial data from IndexedDB
+    useEffect(() => {
+      const loadInitialData = async () => {
+        try {
+          const [dbCategories, dbBudget] = await Promise.all([
+            getAllCategoriesFromDB(),
+            getBudgetFromDB()
+          ]);
+  
+          if (dbCategories.length > 0) {
+            setCategories(dbCategories);
+          }
+  
+          if (dbBudget) {
+            setIncome(dbBudget.income);
+            setPayPeriod(dbBudget.payPeriod);
+          }
+        } catch (error) {
+          console.error('Error loading data:', error);
+        }
+      };
+  
+      loadInitialData();
+    }, []);
+
+
+
+      // Save categories when they change
+  useEffect(() => {
+    const saveCategories = async () => {
+      try {
+        const tx = categories.map(category => 
+          updateCategoryInDB(category)
+        );
+        await Promise.all(tx);
+      } catch (error) {
+        console.error('Error saving categories:', error);
+      }
+    };
+
+    if (categories.length > 0) {
+      saveCategories();
+    }
+  }, [categories]);
+
+    // Remove the useEffect that auto-saves budget
+  // Add this state for temporary income input
+  const [tempIncome, setTempIncome] = useState(income);
+
+  // Handle saving budget to DB
+  const handleSaveBudget = async () => {
+    try {
+      await saveBudgetToDB({
+        income: tempIncome,
+        payPeriod
+      });
+      setIncome(tempIncome); // Update the displayed income after successful save
+    } catch (error) {
+      console.error('Error saving budget:', error);
+    }
+  };
+
+
 
   // Generate unique colors whenever categories change
   const categoryColors = generateCategoryColors(categories.length);
@@ -97,36 +229,65 @@ const CreateBudgetPage = () => {
     setAiSuggestions(suggestions);
   }, [remaining, income, categories]);
 
-  const handleDragEnd = (event) => {
+  // Modified handleDragEnd function
+  const handleDragEnd = async (event) => {
     const { active, over } = event;
     if (active.id !== over.id) {
-      setCategories((categories) => {
-        const oldIndex = categories.findIndex(c => c.id === active.id);
-        const newIndex = categories.findIndex(c => c.id === over.id);
-        return arrayMove(categories, oldIndex, newIndex);
+      setCategories((prevCategories) => {
+        const updatedCategories = arrayMove(
+          prevCategories,
+          prevCategories.findIndex(c => c.id === active.id),
+          prevCategories.findIndex(c => c.id === over.id)
+        );
+        
+        // Update IndexedDB with new order
+        updatedCategories.forEach((category, index) => {
+          updateCategoryInDB({ ...category, order: index });
+        });
+
+        return updatedCategories;
       });
     }
   };
-
-  const addCategory = () => {
+  
+  // Modified addCategory function
+  const addCategory = async () => {
     if (newCategory.trim()) {
-      setCategories([...categories, {
+      const newCat = {
         id: Date.now().toString(),
         name: newCategory.trim(),
         allocated: 0,
         spent: 0,
         type: 'custom'
-      }]);
-      setNewCategory('');
+      };
+      
+      try {
+        await addCategoryToDB(newCat);
+        setCategories(prev => [...prev, newCat]);
+        setNewCategory('');
+      } catch (error) {
+        console.error('Error adding category:', error);
+      }
     }
   };
 
-  const updateAllocation = (id, value) => {
-    const numericValue = value === '' ? 0 : parseInt(value.replace(/^0+/, ''), 10) || 0;
-    setCategories(categories.map(cat => 
+ // Modified updateAllocation function
+ const updateAllocation = async (id, value) => {
+  const numericValue = value === '' ? 0 : parseInt(value.replace(/^0+/, ''), 10) || 0;
+  
+  setCategories(prev => 
+    prev.map(cat => 
       cat.id === id ? { ...cat, allocated: numericValue } : cat
-    ));
-  };
+    )
+  );
+
+  try {
+    const categoryToUpdate = categories.find(c => c.id === id);
+    await updateCategoryInDB({ ...categoryToUpdate, allocated: numericValue });
+  } catch (error) {
+    console.error('Error updating allocation:', error);
+  }
+};
 
   const chartData = categories.filter(c => c.allocated > 0).map(category => ({
     x: category.name,
@@ -136,28 +297,37 @@ const CreateBudgetPage = () => {
 
   return (
     <div className="budget-page" style={{ backgroundColor: theme.colors.background }}>
-      {/* Income Section */}
-      <div className="income-section" style={{ backgroundColor: theme.colors.primary }}>
-        <div className="income-input">
+            {/* Income Section */}
+            <div className="income-section" style={{ backgroundColor: theme.colors.primary }}>
+        <div className="income-input ">
           <label>Monthly Income</label>
           <input
             type="number"
-            value={income || ''}
+            value={tempIncome || ''}
             onChange={(e) => {
               const value = e.target.value.replace(/^0+/, '');
-              setIncome(value ? parseInt(value, 10) : 0);
+              setTempIncome(value ? parseInt(value, 10) : 0);
             }}
             style={{ color: theme.colors.text.primary }}
             min="0"
           />
+          <button 
+          className='save-income'
+            onClick={handleSaveBudget}
+            style={{ backgroundColor: theme.colors.accent} }
+          >
+            <PlusOutlined /> Save
+          </button>
           <div className="pay-period-toggle">
             <button
+              type="button"
               onClick={() => setPayPeriod('monthly')}
               className={payPeriod === 'monthly' ? 'active' : ''}
             >
               Monthly
             </button>
             <button
+              type="button"
               onClick={() => setPayPeriod('biweekly')}
               className={payPeriod === 'biweekly' ? 'active' : ''}
             >
